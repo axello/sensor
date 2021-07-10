@@ -83,10 +83,11 @@ SoundData_t soundData = {0};
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
 Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT);
 
-#define MQTT_FEED "/metriful/zolder/"
+#define MQTT_FEED "metriful/zolder/"
 Adafruit_MQTT_Publish metriful = Adafruit_MQTT_Publish(&mqtt, MQTT_FEED);
 
 void setup() {
+
   // Initialize the host's pins, set up the serial port and reset:
   SensorHardwareSetup(I2C_ADDRESS); 
 
@@ -166,7 +167,7 @@ void loop() {
 //   else {
 //     http_POST_data_Thingspeak_cloud();
 //   }
-
+  post_MQTT();
 }
 
 
@@ -193,49 +194,49 @@ void post_MQTT(void) {
     bool isPositive = true;
     getTemperature(&airData, &T_intPart, &T_fractionalPart, &isPositive);
     
-    sprintf(postBuffer,"{ \"state\": { \"temperature\": %u.%u,", T_intPart, T_fractionalPart);
+    sprintf(postBuffer,"{ \"state\": {\n\"temp\":%u.%u,\n", T_intPart, T_fractionalPart);
     
-    sprintf(fieldBuffer, "\"pressure:\": %u ", airData.P_Pa);
+    sprintf(fieldBuffer, "\"pressure:\":%u,\n", airData.P_Pa);
     strcat(postBuffer, fieldBuffer);
     
-    // sprintf(fieldBuffer,",{\"variable\":\"humidity\",\"value\":%u.%u}", 
-    //         airData.H_pc_int, airData.H_pc_fr_1dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"humidity\":%u.%u,\n", 
+            airData.H_pc_int, airData.H_pc_fr_1dp);
+    strcat(postBuffer, fieldBuffer);
     
-    // sprintf(fieldBuffer,",{\"variable\":\"aqi\",\"value\":%u.%u}", 
-    //         airQualityData.AQI_int, airQualityData.AQI_fr_1dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"aqi\":%u.%u,\n", 
+            airQualityData.AQI_int, airQualityData.AQI_fr_1dp);
+    strcat(postBuffer, fieldBuffer);
     
-    // sprintf(fieldBuffer,",{\"variable\":\"aqi_string\",\"value\":\"%s\"}", 
-    //         interpret_AQI_value(airQualityData.AQI_int));
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"aqi_string\":\"%s\",\n", 
+            interpret_AQI_value(airQualityData.AQI_int));
+    strcat(postBuffer, fieldBuffer);
     
-    // sprintf(fieldBuffer,",{\"variable\":\"bvoc\",\"value\":%u.%02u}", 
-    //         airQualityData.bVOC_int, airQualityData.bVOC_fr_2dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"bvoc\":%u.%02u,\n", 
+            airQualityData.bVOC_int, airQualityData.bVOC_fr_2dp);
+    strcat(postBuffer, fieldBuffer);
     
-    // sprintf(fieldBuffer,",{\"variable\":\"spl\",\"value\":%u.%u}", 
-    //         soundData.SPL_dBA_int, soundData.SPL_dBA_fr_1dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"spl\":%u.%u,\n", 
+            soundData.SPL_dBA_int, soundData.SPL_dBA_fr_1dp);
+    strcat(postBuffer, fieldBuffer);
 
-    // sprintf(fieldBuffer,",{\"variable\":\"peak_amp\",\"value\":%u.%02u}", 
-    //         soundData.peak_amp_mPa_int, soundData.peak_amp_mPa_fr_2dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"peak_amp\":%u.%02u,\n", 
+            soundData.peak_amp_mPa_int, soundData.peak_amp_mPa_fr_2dp);
+    strcat(postBuffer, fieldBuffer);
 
-    // sprintf(fieldBuffer,",{\"variable\":\"particulates\",\"value\":%u.%02u}", 
-    //         particleData.concentration_int, particleData.concentration_fr_2dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"particulates\":%u.%02u,\n", 
+            particleData.concentration_int, particleData.concentration_fr_2dp);
+    strcat(postBuffer, fieldBuffer);
     
-    // sprintf(fieldBuffer,",{\"variable\":\"illuminance\",\"value\":%u.%02u}]", 
-    //         lightData.illum_lux_int, lightData.illum_lux_fr_2dp);
-    // strcat(postBuffer, fieldBuffer);
+    sprintf(fieldBuffer,"\"illuminance\":%u.%02u", 
+            lightData.illum_lux_int, lightData.illum_lux_fr_2dp);
+    strcat(postBuffer, fieldBuffer);
 
-    strcat(postBuffer, "}\n}");
+    strcat(postBuffer, "\n} }\n");
 
     size_t len = strlen(postBuffer);
     
     metriful.publish(postBuffer);
-    
+
     // client.println(fieldBuffer);
     // client.println();
     // client.print(postBuffer);
