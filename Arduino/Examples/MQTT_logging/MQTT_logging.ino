@@ -83,7 +83,7 @@ SoundData_t soundData = {0};
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
 Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT);
 
-#define MQTT_FEED "metriful/zolder/"
+#define MQTT_FEED "metriful/zolder/state"
 Adafruit_MQTT_Publish metriful = Adafruit_MQTT_Publish(&mqtt, MQTT_FEED);
 
 void setup() {
@@ -194,9 +194,9 @@ void post_MQTT(void) {
     bool isPositive = true;
     getTemperature(&airData, &T_intPart, &T_fractionalPart, &isPositive);
     
-    sprintf(postBuffer,"{ \"state\": {\n\"temp\":%u.%u,\n", T_intPart, T_fractionalPart);
+    sprintf(postBuffer,"{\"temperature\":%u.%u,\n", T_intPart, T_fractionalPart);
     
-    sprintf(fieldBuffer, "\"pressure:\":%u,\n", airData.P_Pa);
+    sprintf(fieldBuffer, "\"pressure\":%u,\n", airData.P_Pa);
     strcat(postBuffer, fieldBuffer);
     
     sprintf(fieldBuffer,"\"humidity\":%u.%u,\n", 
@@ -231,11 +231,16 @@ void post_MQTT(void) {
             lightData.illum_lux_int, lightData.illum_lux_fr_2dp);
     strcat(postBuffer, fieldBuffer);
 
-    strcat(postBuffer, "\n} }\n");
+    strcat(postBuffer, "\n}");
 
     size_t len = strlen(postBuffer);
-    
-    metriful.publish(postBuffer);
+    Serial.println(len);
+    postBuffer[len] = '\0';
+    uint8_t *otherBuffer = (uint8_t*) postBuffer;
+
+    if (!metriful.publish(otherBuffer, len)) {
+      Serial.println("Could not send mqtt.");
+    }
 
     // client.println(fieldBuffer);
     // client.println();

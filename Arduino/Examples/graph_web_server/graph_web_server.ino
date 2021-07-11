@@ -30,6 +30,7 @@
 #include <Metriful_sensor.h>
 #include <WiFi_functions.h>
 #include <graph_web_page.h>
+#include "secrets.h"
 
 //////////////////////////////////////////////////////////
 // USER-EDITABLE SETTINGS
@@ -47,7 +48,8 @@ uint8_t cycle_period = CYCLE_PERIOD_100_S;
 
 // Choose whether to create a new WiFi network (host as Access Point),
 // or connect to an existing WiFi network.
-bool createWifiNetwork = true;
+bool createWifiNetwork = false;
+
 // If creating a WiFi network, a static (fixed) IP address ("theIP") is 
 // specified by the user.  Otherwise, if connecting to an existing 
 // network, an IP address is automatically allocated and the serial 
@@ -58,8 +60,10 @@ bool createWifiNetwork = true;
 // host (Access Point mode) or already exists.
 // To avoid problems, do not create a network with the same SSID name
 // as an already existing network.
-char SSID[] = "PUT WIFI NETWORK NAME HERE IN QUOTES"; // network SSID (name)
-char password[] = "PUT WIFI PASSWORD HERE IN QUOTES"; // network password; must be at least 8 characters
+// char SSID[] = "PUT WIFI NETWORK NAME HERE IN QUOTES"; // network SSID (name)
+// char password[] = "PUT WIFI PASSWORD HERE IN QUOTES"; // network password; must be at least 8 characters
+char SSID[] = WIFI_SSID;
+char password[] = WIFI_PASSWORD;
 
 // Choose a static IP address for the host, only used when generating 
 // a new WiFi network (createWifiNetwork = true). The served web 
