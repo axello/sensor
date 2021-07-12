@@ -196,7 +196,9 @@ void post_MQTT(void) {
     
     sprintf(postBuffer,"{\"temperature\":%u.%u,\n", T_intPart, T_fractionalPart);
     
-    sprintf(fieldBuffer, "\"pressure\":%u,\n", airData.P_Pa);
+    // https://stackoverflow.com/questions/45922817/what-is-unquoted-priu32-in-printf-in-c
+    
+    sprintf(fieldBuffer, "\"pressure\":%" PRIu32 ",\n", airData.P_Pa);
     strcat(postBuffer, fieldBuffer);
     
     sprintf(fieldBuffer,"\"humidity\":%u.%u,\n", 
