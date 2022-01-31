@@ -3,6 +3,8 @@
 #include <graph_web_page.h>
 #include <host_pin_definitions.h>
 #include <sensor_constants.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 /* 
    MQTT_logging.ino
@@ -59,6 +61,15 @@ char password[] = WIFI_PASSWORD; // network password
 // and a WiFi internet connection must exist. See the accompanying 
 // readme and User Guide for more information.
 
+// Define DALLAS for 1 ds18b20, or DALLAS2 for 2 dallas
+#define DALLAS
+
+#ifdef DALLAS
+#define ONE_WIRE_BUS_1 13   // labeled D7
+
+#endif
+// #define ONE_WIRE_BUS_2 15   // labeled D8
+
 // END OF USER-EDITABLE SETTINGS
 //////////////////////////////////////////////////////////
 
@@ -69,7 +80,7 @@ char password[] = WIFI_PASSWORD; // network password
 WiFiClient client;
 
 // Buffers for assembling http POST requests
-char postBuffer[450] = {0};
+char postBuffer[500] = {0};
 char fieldBuffer[70] = {0};
 
 // Structs for data
@@ -78,6 +89,8 @@ AirQualityData_t airQualityData = {0};
 LightData_t lightData = {0}; 
 ParticleData_t particleData = {0};
 SoundData_t soundData = {0};
+float temperature1 = DEVICE_DISCONNECTED_C;
+float temperature2 = DEVICE_DISCONNECTED_C;
 
 // MQTT
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
@@ -86,11 +99,67 @@ Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT);
 #define MQTT_FEED "metriful/zolder/state"
 Adafruit_MQTT_Publish metriful = Adafruit_MQTT_Publish(&mqtt, MQTT_FEED);
 
+// DALLAS DS18B20
+#ifdef DALLAS
+OneWire oneWire(ONE_WIRE_BUS_1);
+DallasTemperature temp_sensors(&oneWire);
+
+// arrays to hold device addresses
+DeviceAddress thermometer1, thermometer2;
+
+#endif
+
+void searchOneWireDevices() {
+  temp_sensors.begin();
+
+    // locate devices on the bus
+  Serial.print("Locating devices...");
+  Serial.print("Found ");
+  Serial.print(temp_sensors.getDeviceCount(), DEC);
+  Serial.println(" devices.");
+  
+  // report parasite power requirements
+  Serial.print("Parasite OneWire power is: ");
+  if (temp_sensors.isParasitePowerMode()) Serial.println("ON");
+  else Serial.println("OFF");
+
+  // search
+  oneWire.reset_search();
+  if (!oneWire.search(thermometer1)) Serial.println("Unable to find address for thermometer1");
+  // assigns the second address found to thermometer2
+  if (!oneWire.search(thermometer2)) Serial.println("Unable to find address for thermometer2");
+
+  // report
+  // show the addresses we found on the bus
+  Serial.print("Device 0 Address: ");
+  printAddress(thermometer1);
+  Serial.println();
+
+  Serial.print("Device 1 Address: ");
+  printAddress(thermometer2);
+  Serial.println();
+}
+
+// function to print a device address
+void printAddress(DeviceAddress deviceAddress)
+{
+  for (uint8_t i = 0; i < 8; i++)
+  {
+    // zero pad the address if necessary
+    if (deviceAddress[i] < 16) Serial.print("0");
+    Serial.print(deviceAddress[i], HEX);
+  }
+}
+
 void setup() {
 
   // Initialize the host's pins, set up the serial port and reset:
   SensorHardwareSetup(I2C_ADDRESS); 
 
+#ifdef DALLAS
+  searchOneWireDevices();
+#endif
+    
   connectToWiFi(SSID, password);
   
   // Apply chosen settings to the MS430
@@ -113,6 +182,13 @@ void loop() {
   ready_assertion_event = false;
 
     MQTT_connect();
+
+  /* Read DS18B20 extra temperature data
+  */
+
+#ifdef DALLAS
+  temp_sensors.requestTemperatures();
+#endif
 
   /* Read data from the MS430 into the data structs. 
   For each category of data (air, sound, etc.) a pointer to the data struct is 
@@ -149,6 +225,19 @@ void loop() {
   if (PARTICLE_SENSOR != PARTICLE_SENSOR_OFF) {
     ReceiveI2C(I2C_ADDRESS, PARTICLE_DATA_READ, (uint8_t *) &particleData, PARTICLE_DATA_BYTES);
   }
+
+
+#ifdef DALLAS
+  float tempC = temp_sensors.getTempC(thermometer1);
+  if(tempC != DEVICE_DISCONNECTED_C) {
+    temperature1 = tempC;
+  }
+  tempC = temp_sensors.getTempC(thermometer2);
+  if(tempC != DEVICE_DISCONNECTED_C) {
+    temperature2 = tempC;
+  }
+
+#endif
 
   // Check that WiFi is still connected
   uint8_t wifiStatus = WiFi.status();
@@ -195,7 +284,18 @@ void post_MQTT(void) {
     getTemperature(&airData, &T_intPart, &T_fractionalPart, &isPositive);
     
     sprintf(postBuffer,"{\"temperature\":%u.%u,\n", T_intPart, T_fractionalPart);
-    
+
+#ifdef DALLAS
+  if(temperature1 != DEVICE_DISCONNECTED_C) {
+    sprintf(fieldBuffer,"{\"temp1\":%f,\n", temperature1);
+    strcat(postBuffer, fieldBuffer);
+  }
+  if(temperature2 != DEVICE_DISCONNECTED_C) {
+    sprintf(fieldBuffer,"{\"temp2\":%f,\n", temperature2);
+    strcat(postBuffer, fieldBuffer);
+  }
+
+#endif
     // https://stackoverflow.com/questions/45922817/what-is-unquoted-priu32-in-printf-in-c
     
     sprintf(fieldBuffer, "\"pressure\":%" PRIu32 ",\n", airData.P_Pa);
