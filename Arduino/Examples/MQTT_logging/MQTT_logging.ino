@@ -40,6 +40,7 @@ void MQTT_connect();
 
 //////////////////////////////////////////////////////////
 // USER-EDITABLE SETTINGS
+#define SERIAL_BAUD_RATE 38400
 
 // How often to read and log data (every 100 or 300 seconds)
 // Note: due to data rate limits on free cloud services, this should 
@@ -113,7 +114,7 @@ void searchOneWireDevices() {
   temp_sensors.begin();
 
     // locate devices on the bus
-  Serial.print("Locating devices...");
+  Serial.print("\nLocating devices...");
   Serial.print("Found ");
   Serial.print(temp_sensors.getDeviceCount(), DEC);
   Serial.println(" devices.");
@@ -172,7 +173,6 @@ void setup() {
   TransmitI2C(I2C_ADDRESS, CYCLE_MODE_CMD, 0, 0);
 }
 
-
 void loop() {
 
   // Wait for the next new data release, indicated by a falling edge on READY
@@ -181,11 +181,9 @@ void loop() {
   }
   ready_assertion_event = false;
 
-    MQTT_connect();
+  MQTT_connect();
 
-  /* Read DS18B20 extra temperature data
-  */
-
+  /* Read DS18B20 extra temperature data */
 #ifdef DALLAS
   temp_sensors.requestTemperatures();
 #endif
@@ -287,7 +285,7 @@ void post_MQTT(void) {
 
 #ifdef DALLAS
   if(temperature1 != DEVICE_DISCONNECTED_C) {
-    sprintf(fieldBuffer,"{\"temp1\":%f,\n", temperature1);
+    sprintf(fieldBuffer,"\"temp1\":%5.2f,\n", temperature1);
     strcat(postBuffer, fieldBuffer);
   }
   if(temperature2 != DEVICE_DISCONNECTED_C) {
