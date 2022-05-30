@@ -52,7 +52,8 @@ char SSID[] = WIFI_SSID; // network SSID (name)
 char password[] = WIFI_PASSWORD; // network password
 
 // The details of the MQTT PUBLISHER:
-#define NODENAME zolder
+#define NODENAME oranjeslaap
+#define MQTT_FEED "metriful/oranjeslaap/state"
 
 // IoT cloud settings
 // This example uses the free IoT cloud hosting services provided 
@@ -97,7 +98,6 @@ float temperature2 = DEVICE_DISCONNECTED_C;
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
 Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT);
 
-#define MQTT_FEED "metriful/zolder/state"
 Adafruit_MQTT_Publish metriful = Adafruit_MQTT_Publish(&mqtt, MQTT_FEED);
 
 // DALLAS DS18B20
@@ -285,11 +285,11 @@ void post_MQTT(void) {
 
 #ifdef DALLAS
   if(temperature1 != DEVICE_DISCONNECTED_C) {
-    sprintf(fieldBuffer,"\"temp1\":%5.2f,\n", temperature1);
+    sprintf(fieldBuffer, "\"temp1\":%5.2f,\n", temperature1);
     strcat(postBuffer, fieldBuffer);
   }
   if(temperature2 != DEVICE_DISCONNECTED_C) {
-    sprintf(fieldBuffer,"{\"temp2\":%f,\n", temperature2);
+    sprintf(fieldBuffer, "\"temp2\":%5.2f,\n", temperature2);
     strcat(postBuffer, fieldBuffer);
   }
 
