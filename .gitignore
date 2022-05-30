@@ -7,3 +7,7 @@ application.windows32
 application.windows64
 application.macosx
 secrets.h
+
+*.ino.elf
+xtensa-lx106-elf-size
+
